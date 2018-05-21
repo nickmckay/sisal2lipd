@@ -1,0 +1,9 @@
+sisal,lipd,units,description,variableType,proxyObservationType,inferredVariableType
+dating_lamina_id,sisalDatingLaminaId,unitless,Unique identifier for each lamina ,sampleMetada,,
+entity_id,NA,NA,Refers to the unique identifier for each entity (as given in entity table),,,
+depth_lam,depth,mm,Depth of the midpoint of the lamina in mm from a reference point ,measured,depth,
+lam_thickness,thickness,mm,Thickness in mm of the sample dated,measured,depth,
+lam_age,age,yr BP,Age in years of individual lamina,inferred,,age
+lam_age_uncert_pos,ageUncertaintyHigh,yr BP,Positive counting uncertainty of individual lamina in years,inferred,,
+lam_age_uncert_neg,ageUncertaintyLow,yr BP,Negative counting uncertainty of individual lamina in years,inferred,,
+,,,,,,
