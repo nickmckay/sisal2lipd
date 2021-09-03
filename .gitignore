@@ -32,3 +32,8 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 .Rproj.user
+lipds/.DS_Store
+
+#lipd files
+*.lpd
+sisalv2.sql

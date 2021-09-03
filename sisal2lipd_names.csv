@@ -11,11 +11,35 @@ iso_std.x,d18OStandard,unitless,Description of isotopic standard used ,sampleMet
 d13C_measurement,d13C,permil,Original d13C measurement,measured,d13C,
 d13C_precision,d13CPrecision,permil,Laboratory precision on the d13C measurement,measured,,
 iso_std.y,d13CStandard,unitless,Description of isotopic standard used ,sampleMetadata,,
-interp_age,age,yr BP,Calendar age of the sample in years,inferred,,age
-interp_age_uncert_pos,ageUncertaintyHigh,yr BP,Positive uncertainty on the age of the sample in years,inferred,,
-interp_age_uncert_neg,ageUncertaintyLow,yr BP,Negative uncertainty on the age of the sample in years,inferred,,
+interp_age,age,yr BP,Original published calibrated age of the sample in years BP,inferred,,age
+interp_age_uncert_pos,ageUncertaintyHigh,yr BP,Original published positive uncertainty on the age of the sample in years,inferred,,
+interp_age_uncert_neg,ageUncertaintyLow,yr BP,Original published negative uncertainty on the age of the sample in years,inferred,,
 age_model_type,NA,NA,,,,
 ann_lam_check,NA,NA,,,,
 dep_rate_check,NA,NA,,,,
 gap,hasGap,unitless,Indication of a gap,sampleMetadata,,
 hiatus,hasHiatus,unitless,Indication of an hiatus,sampleMetadata,,
+lin_interp_age,agelinInterp,yr BP,"Calendar age in years BP, method = linInterp",inferred,,age
+lin_interp_age_uncert_pos,agelinInterpUncertaintyHigh,yr BP,"Positive age uncertaintyin years BP, method = linInterp",inferred,,
+lin_interp_age_uncert_neg,agelinInterpUncertaintyLow,yr BP,"Negative age uncertaintyin years BP, method = linInterp",inferred,,
+lin_reg_age,agelinReg,yr BP,"Calendar age in years BP, method = linReg",inferred,,age
+lin_reg_age_uncert_pos,agelinRegUncertaintyHigh,yr BP,"Positive age uncertaintyin years BP, method = linReg",inferred,,
+lin_reg_age_uncert_neg,agelinRegUncertaintyLow,yr BP,"Negative age uncertaintyin years BP, method = linReg",inferred,,
+Bchron_age,ageBchron,yr BP,"Calendar age in years BP, method = Bchron",inferred,,age
+Bchron_age_uncert_pos,ageBchronUncertaintyHigh,yr BP,"Positive age uncertaintyin years BP, method = Bchron",inferred,,
+Bchron_age_uncert_neg,ageBchronUncertaintyLow,yr BP,"Negative age uncertaintyin years BP, method = Bchron",inferred,,
+Bacon_age,ageBacon,yr BP,"Calendar age in years BP, method = Bacon",inferred,,age
+Bacon_age_uncert_pos,ageBaconUncertaintyHigh,yr BP,"Positive age uncertaintyin years BP, method = Bacon",inferred,,
+Bacon_age_uncert_neg,ageBaconUncertaintyLow,yr BP,"Negative age uncertaintyin years BP, method = Bacon",inferred,,
+OxCal_age,ageOxCal,yr BP,"Calendar age in years BP, method = OxCal",inferred,,age
+OxCal_age_uncert_pos,ageOxCalUncertaintyHigh,yr BP,"Positive age uncertaintyin years BP, method = OxCal",inferred,,
+OxCal_age_uncert_neg,ageOxCalUncertaintyLow,yr BP,"Negative age uncertaintyin years BP, method = OxCal",inferred,,
+copRa_age,agecopRa,yr BP,"Calendar age in years BP, method = copRa",inferred,,age
+copRa_age_uncert_pos,agecopRaUncertaintyHigh,yr BP,"Positive age uncertaintyin years BP, method = copRa",inferred,,
+copRa_age_uncert_neg,agecopRaUncertaintyLow,yr BP,"Negative age uncertaintyin years BP, method = copRa",inferred,,
+StalAge_age,ageStalAge,yr BP,"Calendar age in years BP, method = StalAge",inferred,,age
+StalAge_age_uncert_pos,ageStalAgeUncertaintyHigh,yr BP,"Positive age uncertaintyin years BP, method = StalAge",inferred,,
+StalAge_age_uncert_neg,ageStalAgeUncertaintyLow,yr BP,"Negative age uncertaintyin years BP, method = StalAge",inferred,,
+,,,,,,
+,,,,,,
+,,,,,,

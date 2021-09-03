@@ -1,18 +1,21 @@
 #load in read in SISAL data and populate LiPD files.
-library(here)
 library(tidyverse)
 library(magrittr)
 library(lipdR)
-load(here("allTables.Rdata"))
+library(lipdverseR)
+library(lubridate)
+library(here)
+
+load(here::here("allTables.Rdata"))
 
 #load in name converter
-nc <- read_csv(here("sisal2lipd_names.csv")) %>% 
+nc <- read_csv(here::here("sisal2lipd_names.csv")) %>% 
   filter(!is.na(lipd))
 
-nc.chron <- read_csv(here("sisal2lipd_names_chron.csv")) %>% 
+nc.chron <- read_csv(here::here("sisal2lipd_names_chron.csv")) %>% 
   filter(!is.na(lipd))
 
-nc.chron.lam <- read_csv(here("sisal2lipd_names_chron_lam.csv")) %>% 
+nc.chron.lam <- read_csv(here::here("sisal2lipd_names_chron_lam.csv")) %>% 
   filter(!is.na(lipd))
 #assign in data.frames
 
@@ -21,15 +24,19 @@ entity <- all$entity #each speleothem/collection?
 elr <- all$entity_link_reference #links entities to references
 pubs <- all$reference
 sample <- all$sample
-d18O <- all$d18O
-d13C <- all$d13C
+d18O <- all$d18o
+d13C <- all$d13c
 dating <- all$dating
 datingLamina <- all$dating_lamina
 origDates <- all$original_chronology
+sisalDates <- all$sisal_chronology
+notes <- all$notes
+
+rosetta <- lipdverseR::rosettaStone()
 
 #loop through sites
-for(s in 19:nrow(sites)){
-#for(s in 1:10){
+for(s in 1:nrow(sites)){
+  #for(s in 1:10){
   #GEO
   geo <- list()
   geo$siteName <- sites$site_name[s]
@@ -45,6 +52,7 @@ for(s in 19:nrow(sites)){
   this.ent <- dplyr::filter(entity,site_id == geo$sisalSiteId)#connect this site to it's stals
   this.elr <- dplyr::filter(elr,entity_id %in% this.ent$entity_id)#connect these stals to their pubs
   this.pub <- dplyr::filter(pubs,ref_id %in% this.elr$ref_id)#grab the pubs in this site
+  this.notes <- dplyr::filter(notes, site_id == geo$sisalSiteId) #notes for the site
   
   #count number of unique pubs
   this.elr$thisRefId <- NA
@@ -64,21 +72,36 @@ for(s in 19:nrow(sites)){
     pub[[p]]$citation <- this.pub$citation[p]
     pub[[p]]$DOI <- this.pub$publication_DOI[p]
     re <- gregexpr(pattern = "[1-2][0-9][0-9][0-9]",pub[[p]]$citation)
+    ren <- length(re[[1]])
     
-    pub[[p]]$year <- as.numeric(stringr::str_sub(pub[[p]]$citation,start = re[[1]][1],end = re[[1]][1]+3))
+    pub[[p]]$year <- as.numeric(stringr::str_sub(pub[[p]]$citation,start = re[[1]][ren],end = re[[1]][ren]+3))
   }
+  
+  firstAuthor <- "noAuthor"
+  pubYear1 <- "noPub"
+  
   if(length(pub)>0){#grab the first author for later
     split <- (stringr::str_split(pub[[1]]$citation,","))
     sl <- sapply(split,stringr::str_length)
     firstAuthor <- split[[1]][min(which(sl>=3))]
-    pubYear1 <-  pub[[1]]$year
+    pubYear1 <-  as.numeric(pub[[1]]$year)
+    if(is.na(pubYear1)){
+      pubYear1 <- ""
+    }
   }
   
   #BASE
-  dataSetName <-  stringr::str_remove_all(stringr::str_c(geo$siteName,firstAuthor,pub[[p]]$year,sep = "."),pattern = " ")
+  dataSetName <-  stringr::str_remove_all(stringr::str_c(geo$siteName,firstAuthor,pubYear1,sep = "."),pattern = " ") %>% 
+    lipdverseR::replaceSpecialCharacters(rosetta) %>% 
+    gsub(replacement = "",pattern = "[^A-Za-z0-9.-]")
+  
+  
+  
+  print(dataSetName)
   
   #PALEODATA
   pmt <- vector(mode = "list",length = nrow(this.ent))
+  tcComp <- tibble(variable = "NA",values = "NA",sample_id = NA)
   for(e in 1:nrow(this.ent)){#create a measurement table for every entry
     pmt[[e]]$tableName <- this.ent$entity_name[e]
     pmt[[e]]$SISALEntityID <- this.ent$entity_id[e]
@@ -88,17 +111,19 @@ for(s in 19:nrow(sites)){
     this.samp <- filter(sample,entity_id == this.ent$entity_id[e])
     
     #create a complete data.frame for this entity
-    adf <- left_join(this.samp,d18O,by="sample_id") %>% 
-      left_join(d13C,by="sample_id") %>% 
-      left_join(origDates,by="sample_id") %>% 
-      left_join(all$gap,by="sample_id") %>% 
-      left_join(all$hiatus,by="sample_id")
+    adf <- left_join(this.samp,d18O,by="sample_id",copy = TRUE) %>% 
+      left_join(d13C,by="sample_id",copy = TRUE) %>% 
+      left_join(origDates,by="sample_id",copy = TRUE) %>% 
+      left_join(sisalDates,by="sample_id",copy = TRUE) %>% 
+      left_join(all$gap,by="sample_id",copy = TRUE) %>% 
+      left_join(all$hiatus,by="sample_id",copy = TRUE)
     
     
     for(n in 1:nrow(nc)){#create a column for each row
       
       tc <- list()#create an empty list
       #COLUMN META
+      tc$TSid <- str_c("S2L",lipdR::createTSid())
       tc$variableName <- nc$lipd[n]
       tc$units <- nc$units[n]
       tc$description <- nc$description[n]
@@ -110,8 +135,26 @@ for(s in 19:nrow(sites)){
         tc$inferredVariableType <- nc$inferredVariableType[n]
       }
       
+      #inCompilation
+      icb <- list(compilationName = "SISAL-LiPD",compilationVersion = "2_0_0")
+      tc$inCompilationBeta <- list(icb)
+      
       #add in the data
       tc$values <- as.matrix(adf[nc$sisal[n]])
+      if(all(is.na(tc$values))){
+        next
+      }
+      ttc <- tibble(variable = tc$variableName,values = as.character(tc$values),sample_id = adf$sample_id)
+      names(ttc)
+      if(n == 1){#the first time through add in data for entity name
+        entdat <- tibble::tibble(variable = "entityName",values = this.ent$entity_name[e],sample_id = adf$sample_id)  
+        tcComp <- dplyr::bind_rows(tcComp,entdat)
+      }
+      tcComp <- dplyr::bind_rows(tcComp,ttc)
+      #assign primary age column
+      if(tc$variableName == "age"){
+        tc$primaryAgeColumn <- TRUE
+      }
       
       if(!all(is.na(tc$values))){      #plop into the measuermentTable
         pmt[[e]][[tc$variableName]] <- tc
@@ -120,11 +163,55 @@ for(s in 19:nrow(sites)){
     
   }#end measurementTable loop
   
+  #remove pmts with no data
+  to.rem.pp <- c()
+  for(pp in 1:length(pmt)){
+    if(!any(sapply(pmt[[pp]],is.list))){
+      to.rem.pp <- c(to.rem.pp,pp)
+    }
+  }
+  if(length(to.rem.pp)>0){
+    pmt <- pmt[-to.rem.pp]
+  }
+  
+  #make composite table
+  if(length(pmt)>1){
+    wt <- pivot_wider(tcComp[-1,],names_from = variable,values_from = values) %>% 
+      type_convert() %>% 
+      arrange(age) %>% 
+      select(age,everything(),-sample_id)
+    
+    #make a new measurementTable
+    npmt <- pmt[[1]]
+    npmt$tableName <- "allStalComposite"
+    npmt$SISALEntityID <- NULL
+    npmtlnames <- names(npmt)[sapply(npmt,is.list)]
+    for(nn in 1:length(npmtlnames)){
+      if(!startsWith(npmt[[npmtlnames[nn]]]$variableName,"age")){#don't add "Composite" to age
+        npmt[[npmtlnames[nn]]]$variableName <- str_c( npmt[[npmtlnames[nn]]]$variableName,"Composite")
+      }
+      npmt[[npmtlnames[nn]]]$description <- str_c( npmt[[npmtlnames[nn]]]$description,"- All Stal composite, arranged by age, automatically by sisal2lipd. User beware.")
+      npmt[[npmtlnames[nn]]]$TSid <- str_c("S2L",lipdR::createTSid())
+      npmt[[npmtlnames[nn]]]$values <- as.matrix(wt[npmtlnames[nn]])
+    }
+    
+    #create a new column for stal name
+    npmt$entityName$variableName <- "entityName"
+    npmt$entityName$description <- "Entity (stal) names in the composite. Typically names a physical specimen upon which the sample was measured." 
+    npmt$entityName$TSid <- str_c("S2L",lipdR::createTSid())
+    npmt$entityName$values <- as.matrix(wt$entityName)
+    
+    
+    pmt[[length(pmt)+1]] <- npmt
+  }
+  
+  
   #CHRONDATA
   cmt <- vector(mode = "list",length = nrow(this.ent))
   hasChron <- c()
   
   for(e in 1:nrow(this.ent)){#create a measurement table for every entry
+    
     cmt[[e]]$tableName <- this.ent$entity_name[e]
     cmt[[e]]$SISALEntityID <- this.ent$entity_id[e]
     cmt[[e]]$hasPublication <- this.elr$thisRefId[e]
@@ -136,12 +223,13 @@ for(s in 19:nrow(sites)){
     this.datingLamina <- filter(datingLamina,entity_id == this.ent$entity_id[e])
     hasChron[e] <- TRUE
     
-
+    
     if(nrow(this.dates)>0){#tie points
       for(n in 1:nrow(nc.chron)){#create a column for each row
         
         tc <- list()#create an empty list
         #COLUMN META
+        tc$TSid <- str_c("S2Lc",lipdR::createTSid())
         tc$variableName <- nc.chron$lipd[n]
         tc$units <- nc.chron$units[n]
         tc$description <- nc.chron$description[n]
@@ -174,6 +262,7 @@ for(s in 19:nrow(sites)){
       tc <- list()#create an empty list
       #COLUMN META
       tc$variableName <- "ageType"
+      tc$TSid <- str_c("S2Lc",lipdR::createTSid())
       tc$units <- "unitless"
       tc$description <- "broad class of age control"
       tc$variableType <- "sampleMetadata"
@@ -260,7 +349,7 @@ for(s in 19:nrow(sites)){
     }else if(nrow(this.datingLamina)>0){
       cmt[[e]] <- c.lam
     }
-  
+    
     #
     if(nrow(this.dates)==0 & nrow(this.datingLamina)==0){
       hasChron[e] <- FALSE
@@ -268,12 +357,42 @@ for(s in 19:nrow(sites)){
   }#end measurementTable loop
   
   
+  #remove empty columns
+  for(cc in 1:length(cmt)){
+   il <- which(sapply(cmt[[cc]],is.list))
+   to.rem.cci <- c()
+   for(cci in il){
+     if(all(is.na(cmt[[cc]][[cci]]$values))){
+       to.rem.cci <- c(to.rem.cci,cci)
+     }
+   }
+   if(length(to.rem.cci)>0){
+     cmt[[cc]] <- cmt[[cc]][-to.rem.cci]
+   }
+  }
+  
+  #remove cmts with no data
+  to.rem.pp <- c()
+  for(pp in 1:length(cmt)){
+    if(!any(sapply(cmt[[pp]],is.list))){
+      to.rem.pp <- c(to.rem.pp,pp)
+    }
+  }
+  if(length(to.rem.pp)>0){
+    cmt <- cmt[-to.rem.pp]
+  }
+  
   #build into a lipd file
   L <- list()
+  L$archiveType <- "speleothem"
+  L$createdBy <- "sisal2lipd"
   L$dataSetName <- dataSetName
+  L$datasetId <- lipdverseR::createDatasetId()
   L$lipdVersion <- 1.3
   L$geo <- geo
   L$pub <- pub
+  L$originalDataUrl <- "http://dx.doi.org/10.17864/1947.256"
+  L$notes <- paste(c(this.notes$notes),collapse = "; ")
   L$paleoData <- vector(mode = "list",length = 1)
   L$paleoData[[1]]$measurementTable <- pmt
   if(any(hasChron)){
@@ -281,6 +400,7 @@ for(s in 19:nrow(sites)){
     L$chronData[[1]]$measurementTable <- cmt
   }
   
-  writeLipd(L,path = here("lipds"),ignore.warnings = TRUE)
+  L <- initializeChangelog(L,notes = "Created from SISALv2")
+  writeLipd(L,path = here::here("lipds/"),ignore.warnings = TRUE)
   
 }
