@@ -2,7 +2,7 @@ sisal,lipd,units,description,variableType,proxyObservationType,inferredVariableT
 entity_id,NA,NA,,,,
 sample_id,sisalSampleID,unitless,Refers to the unique identifier for the sample (as given in sample table) ,sampleMetadata,,
 sample_thickness,thickness,mm,Thickness of the sample analysed (mm),measured,thickness,
-depth_sample,depth,depth_sample,Distance in mm from a reference point ,measured,depth,
+depth_sample,depth,mm,Distance in mm from a reference point ,measured,depth,
 mineralogy,mineralogy,unitless,Description of the mineralogy of the sample,measured,mineralogy,
 arag_corr,hasAragoniteCorrection,unitless,Indication of whether the isotope measurements have been corrected in aragonite samples,sampleMetadata,,
 d18O_measurement,d18O,permil,Original d18O measurement,measured,d18O,
